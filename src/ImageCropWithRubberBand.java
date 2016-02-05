@@ -1,4 +1,6 @@
 import javafx.application.Application;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -14,6 +16,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -37,6 +40,8 @@ public class ImageCropWithRubberBand extends Application {
     private ImageView imageView;
 
     private Stage primaryStage;
+
+    private DoubleProperty zoom;
 
     public static void main(String[] args) {
         launch(args);
@@ -67,13 +72,32 @@ public class ImageCropWithRubberBand extends Application {
         // the container for the image as a javafx node
         imageView = new ImageView(image);
 
+        imageView.setPreserveRatio(true);
+        zoom = new SimpleDoubleProperty(1);
+
+        imageView.addEventHandler(ScrollEvent.ANY, event -> {
+            if (event.getDeltaY() > 0) {
+                zoom.set(zoom.get() * 1.1);
+            } else if (event.getDeltaY() < 0) {
+                zoom.set(zoom.get() / 1.1);
+            }
+            event.consume();
+        });
+
+        imageView.fitWidthProperty().bind(zoom.multiply(image.widthProperty()));
+        imageView.fitHeightProperty().bind(zoom.multiply(image.heightProperty()));
+
         // add image to layer
         imageLayer.getChildren().add(imageView);
 
         // Let the ScrollPane.viewRect only pan on middle button.
         // See http://stackoverflow.com/q/35232475/1796269
         imageLayer.addEventHandler(MouseEvent.ANY, event -> {
-            if(event.getButton() != MouseButton.MIDDLE) event.consume();
+            if (event.getButton() != MouseButton.MIDDLE) event.consume();
+        });
+
+        imageLayer.setOnScroll(event -> {
+            // event.getDeltaY();
         });
 
         // use scrollpane for image view in case the image is large
